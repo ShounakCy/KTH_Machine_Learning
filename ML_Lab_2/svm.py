@@ -140,11 +140,9 @@ if __name__ == "__main__":
     targets = targets[permute]
     # global kernel_type
     kernel_type = "RBF"
+
     pre_matrix = pre_matrix(inputs, targets, N, kernel_type)
-    # print(pre_matrix)
-
     threshold = pow(10, -5)
-
     C = 10
     # B is a list of pairs of the same length as the alpha -vector, stating the lower and upper bounds for the corresponding element in alpha
     B = [(0, C) for b in range(N)]
