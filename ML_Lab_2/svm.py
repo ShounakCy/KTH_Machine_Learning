@@ -23,8 +23,11 @@ def kernel(x1, x2, k_type):
     elif k_type == 'poly3':
         x1 = np.transpose(x1)
         return pow(np.dot(x1, x2) + 1, 3)
+    elif k_type == 'poly4':
+        x1 = np.transpose(x1)
+        return pow(np.dot(x1, x2) + 1, 4)
     elif k_type == 'RBF':
-        sigma = 0.1
+        sigma = 2.0
         return exp(-np.linalg.norm(x1 - x2, 2) ** 2 / (2 * sigma ** 2))
 
 
@@ -84,17 +87,17 @@ def nz_alpha_values(alpha, inputs, targets, threshold):
 
 
 # -> Calculate the b value using equation (7)
-def cal_b(alphas, inputs, targets, C, kernel_type):
+def cal_b(alphas, inputs, targets, kernel_type):
     # Note that you must use a point on the margin.
     s = 0
     # This corresponds to a point with an alpha-value larger than zero, but less than C (if slack is used).
     for i in range(len(alphas)):
-        if alphas[i] < C:
+        if alphas[i] < 10**(-5):
             s = i
             break
     b = 0
     for i in range(len(inputs)):
-        b = b + alpha[i] * targets[i] * kernel(inputs[s], inputs[i], kernel_type)
+        b = b + alphas[i] * targets[i] * kernel(inputs[s], inputs[i], kernel_type)
     b = b - targets[s]
     return b
 
@@ -114,12 +117,12 @@ if __name__ == "__main__":
     np.random.seed(100)
     # We use the function random.randn to generate arrays with random numbers from a normal distribution with zero
     # mean and unit variance. By multiplying with a number and adding a 2D-vector, we can scale and shift this
-    # cluster to any position. The clusters all have a standard deviation of 0.2.
+    # cluster to any position.
 
     # -> Implementation
     classA = np.concatenate(
         (np.random.randn(10, 2) * 0.2 + [1.5, 0.5],
-         np.random.randn(10, 2) * 0.2 + [-1.5, 0.5]))
+         np.random.randn(10, 2) * 0.2 + [-1.5, -1.5]))
     classB = np.random.randn(20, 2) * 0.2 + [0.0, -0.5]
 
     # The samples are stored in the array inputs
@@ -143,7 +146,8 @@ if __name__ == "__main__":
 
     pre_matrix = pre_matrix(inputs, targets, N, kernel_type)
     threshold = pow(10, -5)
-    C = 10
+    # slack parameter
+    C = None
     # B is a list of pairs of the same length as the alpha -vector, stating the lower and upper bounds for the corresponding element in alpha
     B = [(0, C) for b in range(N)]
     # XC is used to impose other constraints, in addition to the bounds. We will use this to impose the equality constrain
@@ -173,14 +177,14 @@ if __name__ == "__main__":
              'r.')
 
     plt.axis('equal')  # force same scale on both the axis
-    # plt.savefig('svm_plot.pdf') # save a copy on the file
+    #plt.savefig('svm_plot.jpg') # save a copy on the file
     # plt.show() # show plot on the screen
 
     xgrid = np.linspace(-5, 5)
     # print(xgrid)
     ygrid = np.linspace(-4, 4)
 
-    b = cal_b(nonzero_alpha, nonzero_input, nonzero_target, C, kernel_type)
+    b = cal_b(nonzero_alpha, nonzero_input, nonzero_target, kernel_type)
     # print("b", b)
 
     grid = np.array([[indicator(nonzero_alpha, nonzero_input, nonzero_target, b, np.array([x, y]), kernel_type)
@@ -190,9 +194,17 @@ if __name__ == "__main__":
 
     plt.contour(xgrid, ygrid, grid, (-1.0, 0.0, 1.0),
                 colors=('red', 'black', 'blue'),
-                linewidths=(1, 1, 1))
+                linewidths=(1, 3, 1))
+
+    #blue_patch = patches.Patch(color='blue', label='ClassA')
+    #red_patch = patches.Patch(color='red', label='ClassB')
+    #black_patch = patches.Patch(color='black', label='Decision Boundary')
+    #plt.legend(handles=[blue_patch, red_patch, black_patch])
 
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.savefig('svmplt.pdf')
+    #plt.savefig('svmplt_Linear.jpg')
+    #plt.savefig('svmplt_Poly2.jpg')
+
+    plt.savefig('svmplt_RBF.jpg')
     plt.show()
